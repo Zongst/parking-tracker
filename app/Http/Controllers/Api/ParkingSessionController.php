@@ -3,16 +3,14 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\ParkingSession;
-use DateTime;   
-use Carbon\Carbon;
 
 class ParkingSessionController extends Controller
 {
     public function index(Request $request)
     {
         $query = ParkingSession::with('vehicle');
-        if ($search = $request->query('vehicle_id')) {
+
+        if ($search = $request->query('search')) {
             $query->whereHas('vehicle', fn($q) =>
                 $q->where('registration_number', 'like', "%$search%")
                   ->orWhere('make', 'like', "%$search%")
@@ -25,8 +23,8 @@ class ParkingSessionController extends Controller
         }
 
         if ($sort = $request->query('sort')) {
-            $direction = $request->query('direction') ?? 'asc';
-            $query->orderBy($sort ?? 'entry_time', $direction);
+            [$column, $direction] = explode(':', $sort) + [null, 'asc'];
+            $query->orderBy($column ?? 'entry_time', $direction);
         }
 
         return response()->json($query->paginate(10));
@@ -39,32 +37,21 @@ class ParkingSessionController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
+        $validated = $request->validate([
             'vehicle_id' => 'required|exists:vehicles,id',
             'entry_time' => 'required|date',
             'exit_time' => 'nullable|date|after:entry_time',
         ]);
 
-        $duration = null;
-        $entry = Carbon::parse($data['entry_time']);
-
-        if(empty($data['exit_time'])) {
-            $exit = null;
-        }else{
-            $exit  = Carbon::parse($data['exit_time']);
-            $duration = $entry->diffInMinutes($exit);
+        $data = $validated;
+        if (!empty($data['exit_time'])) {
+            $data['duration_minutes'] = (new DateTime($data['entry_time']))
+                ->diff(new DateTime($data['exit_time']))
+                ->i + (new DateTime($data['entry_time']))->diff(new DateTime($data['exit_time']))->h * 60;
+            $data['status'] = 'completed';
         }
 
-
-        $session = ParkingSession::create([
-            'vehicle_id'       => $data['vehicle_id'],
-            'entry_time'       => $entry,
-            'exit_time'        => $exit,
-            'duration_minutes' => $duration,
-            'status'           => $exit ? 'completed' : 'active',
-        ]);
-        
-
+        $session = ParkingSession::create($data);
         return response()->json($session, 201);
     }
 }
