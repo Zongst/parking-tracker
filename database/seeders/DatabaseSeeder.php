@@ -21,5 +21,9 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+        \App\Models\Vehicle::factory(10)
+            ->has(\App\Models\ParkingSession::factory(3))
+            ->create();
+     
     }
 }
