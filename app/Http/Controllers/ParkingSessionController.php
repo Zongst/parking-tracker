@@ -12,7 +12,7 @@ class ParkingSessionController extends Controller
     public function index(Request $request)
     {
         $query = ParkingSession::with('vehicle');
-        if ($search = $request->query('vehicle_id')) {
+        if ($search = $request->query('search')) {
             $query->whereHas('vehicle', fn($q) =>
                 $q->where('registration_number', 'like', "%$search%")
                   ->orWhere('make', 'like', "%$search%")
@@ -28,6 +28,7 @@ class ParkingSessionController extends Controller
             $direction = $request->query('direction') ?? 'asc';
             $query->orderBy($sort ?? 'entry_time', $direction);
         }
+        $query->paginate(10);
 
         return response()->json($query->paginate(10));
     }

@@ -56,7 +56,8 @@
                     const params = new URLSearchParams({
                         search: this.search,
                         status: this.status,
-                        sort: 'entry_time:desc'
+                        sort: 'entry_time',
+                        direction: 'desc'
                     });
                     fetch(`/api/sessions?${params.toString()}`)
                         .then(r => r.json())

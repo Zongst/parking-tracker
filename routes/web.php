@@ -6,3 +6,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/vehicles', function () {
+    return view('dashboard');
+});
